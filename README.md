@@ -12,7 +12,8 @@ Analyze (LLM) → Validate (Deterministic) → Structured JSON Results
 
 **Key Design Principles:**
 - **Evidence-First**: LLM receives only top-5 BM25-scored chunks per requirement (never full document)
-- **Schema Validation**: Pydantic-enforced `ComplianceResult` with exact enum values
+- **Schema Validation**: Pydantic-enforced `ComplianceResult`![architecture](https://github.com/user-attachments/assets/79c17adf-11f9-4edd-9f19-151f90c92327)
+ with exact enum values
 - **Deterministic Quote Grounding**: Exact substring matching after normalization (lowercase, collapse whitespace, normalize quotes/dashes)
 - **Page Provenance**: Character offsets tracked from PDF → Chunks → Quotes → Results
 - **Dual LLM Mode**: External (OpenAI) or Local (Ollama) via config
@@ -140,32 +141,6 @@ pytest tests/ -v  # 38 unit/integration tests
 
 **Coverage**: Parsing, chunking, retrieval, analysis (mocked LLM), validation, job orchestration
 
-## AWS Production Migration Path
-
-**Infrastructure:**
-- **S3** - PDF storage (replace in-memory bytes)
-- **SQS** - Job queue (replace BackgroundTasks)
-- **DynamoDB** - Job state tracking (replace in-memory dict)
-- **ECS Fargate** - Containerized backend deployment
-- **CloudFront + S3** - Static frontend hosting
-
-**AI/ML Services:**
-- **Bedrock** - Replace OpenAI with Claude/Titan models
-- **Textract** - OCR for scanned documents (replace needs_ocr flag)
-- **Comprehend** - Optional: Entity extraction, key phrase detection
-
-**Observability:**
-- **CloudWatch** - Logs, metrics, alarms
-- **X-Ray** - Distributed tracing
-- **EventBridge** - Job state change notifications
-
-**Security:**
-- **Secrets Manager** - API key management
-- **IAM** - Service-to-service auth
-- **WAF** - Rate limiting, DDoS protection
-- **VPC** - Private subnets for backend
-
-**Estimated Migration Effort**: 2-3 days for basic AWS deployment, 1 week for production-grade
 
 ## Project Structure
 
@@ -181,42 +156,5 @@ contract-analyzer/
 - `backend/README.md` - Backend details
 - `backend/ARCHITECTURE.md` - Technical deep-dive
 - `backend/API_TESTING.md` - curl test commands
-
-## For Interviewers / Code Review
-
-**Key Technical Decisions:**
-1. **Evidence-First Architecture**: LLM sees only top-5 BM25-scored chunks (not full document), reducing token costs by ~95% and improving accuracy
-2. **Interface-Based Pipeline**: Each stage (IParser, IChunker, IRetriever, IAnalyzer, IValidator) is independently testable with dependency injection
-3. **Deterministic Quote Validation**: Exact substring matching after normalization (no fuzzy logic) - quotes either exist verbatim or are dropped with audit trail
-4. **Dual LLM Mode**: External (OpenAI) or Local (Ollama) switchable via env var - no code changes needed
-5. **Schema-Driven**: Pydantic enforces `ComplianceResult` structure - LLM output must match exact schema or fallback to low-confidence result
-
-**Production Readiness Indicators:**
-- ✅ 38 unit/integration tests with mocked LLM (no API calls in tests)
-- ✅ Zero linter errors across 3,300 lines
-- ✅ Type-safe with Pydantic validation at all boundaries
-- ✅ Structured logging (no PII/contract text, only metadata)
-- ✅ Error handling with graceful degradation at every stage
-- ✅ Async job pattern (easily migrates to SQS/Celery/RQ)
-- ✅ Progress tracking (deterministic: 10% parse, 20% chunk, 16% per requirement)
-
-**Code Quality Markers:**
-- Clean separation of concerns (API → Core → Pipeline → Services)
-- Minimal dependencies (FastAPI, PyMuPDF, rank-bm25, React - no bloat)
-- No speculative generality (removed FixedSizeChunker, Anthropic stubs)
-- Single responsibility classes (~200 lines each)
-- Comprehensive docstrings and type hints
-
-**Implementation Efficiency:**
-- Total development time: ~6 hours (architecture → backend → frontend → testing)
-- Lines of code: ~3,300 (backend: 2,100, frontend: 400, tests: 800)
-- Test coverage: 38 tests across all pipeline stages
-
-**Interview Talking Points:**
-- Evidence-first vs RAG: Why top-k retrieval before LLM (not after)
-- Deterministic validation: Auditability requirements for legal/compliance
-- Async job pattern: Scalability from FastAPI BackgroundTasks → SQS
-- Schema validation: Type safety prevents runtime errors
-- Security: Logging strategy prevents PII leakage
 
 **License**: MIT - Open source for portfolio/interview use
