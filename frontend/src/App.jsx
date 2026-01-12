@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import ChatPanel from './ChatPanel'
 
-const API_BASE = '/api/v1'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 function App() {
   const [file, setFile] = useState(null)
